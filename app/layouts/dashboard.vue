@@ -163,7 +163,6 @@ const navGroups = [
     label: 'Settings',
     items: [
       { label: 'Tenant', to: '/settings/tenant', icon: 'i-lucide-building' },
-      { label: 'Embed Code', to: '/embed', icon: 'i-lucide-code' },
     ],
   },
 ]

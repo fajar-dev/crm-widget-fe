@@ -23,11 +23,17 @@ definePageMeta({ layout: 'default' })
 useSeoMeta({ title: 'CRM Widget' })
 
 const authStore = useAuthStore()
+const tenantStore = useTenantStore()
 
 onMounted(() => {
   authStore.restoreAuth()
+  tenantStore.restoreCurrentTenant()
   if (authStore.isAuthenticated) {
-    navigateTo('/chatbot/widget')
+    if (tenantStore.currentTenantId) {
+      navigateTo('/chatbot/widget')
+    } else {
+      navigateTo('/tenant/select')
+    }
   } else {
     navigateTo('/login')
   }

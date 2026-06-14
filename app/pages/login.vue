@@ -59,10 +59,13 @@ const form = reactive({
 })
 
 async function onSubmit() {
-  const success = await authStore.login(form)
-  if (success) {
+  const result = await authStore.login(form)
+  if (result === 'has_tenant') {
     toast.add({ title: 'Login berhasil', color: 'success', icon: 'i-lucide-check' })
     navigateTo('/chatbot/widget')
+  } else if (result === 'no_tenant') {
+    toast.add({ title: 'Login berhasil', description: 'Pilih atau buat workspace terlebih dahulu', color: 'success', icon: 'i-lucide-check' })
+    navigateTo('/tenant/select')
   } else {
     toast.add({ title: 'Login gagal', description: 'Email atau password salah', color: 'error', icon: 'i-lucide-x' })
   }

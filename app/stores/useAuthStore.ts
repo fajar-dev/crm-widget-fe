@@ -78,8 +78,8 @@ export const useAuthStore = defineStore('auth', () => {
     persistAuth()
   }
 
-  /** Login with email/password */
-  async function login(payload: LoginRequest): Promise<boolean> {
+  /** Login with email/password. Returns 'has_tenant', 'no_tenant', or false on failure. */
+  async function login(payload: LoginRequest): Promise<'has_tenant' | 'no_tenant' | false> {
     isLoading.value = true
     try {
       const { authService } = await import('~/services/AuthService')
@@ -92,14 +92,16 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Set tenants in tenant store
       const tenantStore = useTenantStore()
-      if (tenantList && tenantList.length > 0) {
-        // If backend provides activeTenant, use it
-        if (activeTenant) {
-          tenantStore.setCurrentTenant(activeTenant as never)
-        }
+      if (activeTenant) {
+        tenantStore.setCurrentTenant(activeTenant as never)
+        return 'has_tenant'
+      }
+      else if (tenantList && tenantList.length > 0) {
+        // Has tenants but no active one — let user select
+        return 'no_tenant'
       }
 
-      return true
+      return 'no_tenant'
     }
     catch {
       return false

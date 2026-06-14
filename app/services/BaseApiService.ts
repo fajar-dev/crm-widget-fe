@@ -54,13 +54,20 @@ export abstract class BaseApiService {
    * Override in subclasses to add custom interceptors.
    */
   protected setupInterceptors(): void {
-    // Request interceptor — attach auth token if available
+    // Request interceptor — attach auth token and tenant ID
     this.http.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
         const token = this.getAuthToken()
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`
         }
+
+        // Attach tenant ID if available
+        const tenantId = this.getTenantId()
+        if (tenantId && config.headers) {
+          config.headers['X-Tenant-ID'] = tenantId
+        }
+
         return config
       },
       (error: unknown) => Promise.reject(error),
@@ -95,6 +102,25 @@ export abstract class BaseApiService {
    * (e.g., session token for widget, JWT for dashboard).
    */
   protected getAuthToken(): string | null {
+    return null
+  }
+
+  /**
+   * Get current tenant ID for X-Tenant-ID header.
+   * Reads from localStorage. Override in subclasses if needed.
+   */
+  protected getTenantId(): string | null {
+    try {
+      if (typeof localStorage === 'undefined') return null
+      const stored = localStorage.getItem('crm_current_tenant')
+      if (stored) {
+        const tenant = JSON.parse(stored)
+        return tenant?.id ?? null
+      }
+    }
+    catch {
+      // Ignore parse errors
+    }
     return null
   }
 

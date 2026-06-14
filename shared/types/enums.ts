@@ -3,24 +3,20 @@
  *
  * Enums and literal types used across the application.
  * Must match the backend API contract defined in docs/swagger.yml.
+ *
+ * NOTE: Some types (UserRole, ContactStatus, ContactSource) are defined
+ * in their respective type files (auth.ts, contact.ts) to avoid duplication.
+ * This file contains only types not defined elsewhere.
  */
 
-/**
- * Form field types for pre-chat form customization
- */
+/** Form field types for pre-chat form customization */
 export type FormFieldType = 'text' | 'email' | 'phone' | 'number' | 'textarea' | 'select'
 
-/**
- * Knowledge base entry types
- */
+/** Knowledge base entry types */
 export type EntryType = 'faq' | 'document_chunk'
 
-/**
- * Conversation status
- */
+/** Conversation status */
 export type ConversationStatus = 'active' | 'ended'
 
-/**
- * Chat message roles
- */
+/** Chat message roles */
 export type MessageRole = 'user' | 'assistant' | 'system'

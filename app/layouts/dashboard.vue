@@ -135,9 +135,8 @@ const navGroups = [
     label: 'Chatbot',
     items: [
       { label: 'Widget Settings', to: '/chatbot/widget', icon: 'i-lucide-palette' },
-      { label: 'Chatbot Settings', to: '/chatbot/settings', icon: 'i-lucide-bot' },
-      { label: 'Form Fields', to: '/chatbot/form-fields', icon: 'i-lucide-list-checks' },
       { label: 'Playground', to: '/chatbot/playground', icon: 'i-lucide-play' },
+      { label: 'Form Fields', to: '/chatbot/form-fields', icon: 'i-lucide-list-checks' },
     ],
   },
   {

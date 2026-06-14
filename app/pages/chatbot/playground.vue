@@ -1,11 +1,11 @@
 <!--
   Playground Page
 
-  Interactive chat interface for testing chatbot AI responses.
-  Maintains client-side history and supports clear/reset.
+  Interactive chat interface for testing chatbot AI responses,
+  with collapsible chatbot settings panel (model config, system instruction).
 
   @see ~/services/PlaygroundService
-  @see ~~/shared/types/playground
+  @see ~/services/ChatbotSettingsService
 -->
 <template>
   <div class="flex flex-col" style="height: calc(100vh - 8rem);">
@@ -16,17 +16,153 @@
           Playground
         </h1>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Test chatbot AI tanpa membuat session baru.
+          Test chatbot AI dan konfigurasi model.
         </p>
       </div>
-      <UButton
-        icon="i-lucide-trash-2"
-        label="Clear Chat"
-        variant="outline"
-        color="neutral"
-        :disabled="chatMessages.length === 0"
-        @click="clearChat"
-      />
+      <div class="flex items-center gap-2">
+        <UButton
+          icon="i-lucide-settings"
+          label="Settings"
+          variant="outline"
+          color="neutral"
+          size="sm"
+          @click="showSettings = !showSettings"
+        />
+        <UButton
+          icon="i-lucide-trash-2"
+          label="Clear Chat"
+          variant="outline"
+          color="neutral"
+          size="sm"
+          :disabled="chatMessages.length === 0"
+          @click="clearChat"
+        />
+      </div>
+    </div>
+
+    <!-- Chatbot Settings Panel (Collapsible) -->
+    <div v-if="showSettings" class="pb-4">
+      <UCard>
+        <template #header>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <UIcon name="i-lucide-cpu" class="size-5 text-gray-500" />
+              <h2 class="text-base font-medium text-gray-900 dark:text-white">Chatbot Settings</h2>
+            </div>
+            <UButton
+              icon="i-lucide-x"
+              variant="ghost"
+              color="neutral"
+              size="xs"
+              @click="showSettings = false"
+            />
+          </div>
+        </template>
+
+        <!-- Loading -->
+        <div v-if="settingsLoading" class="flex items-center justify-center py-8">
+          <UIcon name="i-lucide-loader-2" class="size-6 text-gray-400 animate-spin" />
+        </div>
+
+        <div v-else class="space-y-5">
+          <!-- System Instruction -->
+          <UFormField label="System Instruction" name="systemInstruction">
+            <UTextarea
+              v-model="settingsForm.systemInstruction"
+              placeholder="Instruksi sistem untuk chatbot..."
+              :rows="5"
+              class="w-full font-mono"
+            />
+          </UFormField>
+
+          <!-- Model Config Grid -->
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <UFormField label="Model" name="modelName">
+              <UInput
+                v-model="settingsForm.modelName"
+                placeholder="gemini-2.0-flash"
+                icon="i-lucide-brain"
+                class="w-full"
+                size="sm"
+              />
+            </UFormField>
+
+            <UFormField label="Embedding Model" name="embeddingModel">
+              <UInput
+                v-model="settingsForm.embeddingModel"
+                placeholder="text-embedding-004"
+                icon="i-lucide-layers"
+                class="w-full"
+                size="sm"
+              />
+            </UFormField>
+
+            <UFormField label="Temperature" name="temperature">
+              <UInput
+                v-model.number="settingsForm.temperature"
+                type="number"
+                :step="0.1"
+                :min="0"
+                :max="2"
+                placeholder="0.7"
+                icon="i-lucide-thermometer"
+                class="w-full"
+                size="sm"
+              />
+            </UFormField>
+
+            <UFormField label="Max Tokens" name="maxTokens">
+              <UInput
+                v-model.number="settingsForm.maxTokens"
+                type="number"
+                :min="1"
+                placeholder="4096"
+                icon="i-lucide-hash"
+                class="w-full"
+                size="sm"
+              />
+            </UFormField>
+
+            <UFormField label="Top P" name="topP">
+              <UInput
+                v-model.number="settingsForm.topP"
+                type="number"
+                :step="0.05"
+                :min="0"
+                :max="1"
+                placeholder="0.95"
+                icon="i-lucide-percent"
+                class="w-full"
+                size="sm"
+              />
+            </UFormField>
+
+            <UFormField label="Top K" name="topK">
+              <UInput
+                v-model.number="settingsForm.topK"
+                type="number"
+                :min="1"
+                placeholder="40"
+                icon="i-lucide-list-ordered"
+                class="w-full"
+                size="sm"
+              />
+            </UFormField>
+          </div>
+        </div>
+
+        <template #footer>
+          <div class="flex justify-end">
+            <UButton
+              icon="i-lucide-save"
+              label="Simpan Settings"
+              size="sm"
+              :loading="settingsSaving"
+              @click="saveSettings"
+            />
+          </div>
+        </template>
+      </UCard>
     </div>
 
     <!-- Chat Area -->
@@ -145,17 +281,78 @@
 /**
  * Playground Page
  *
- * Interactive chat interface for testing chatbot AI.
- * Maintains client-side history array for multi-turn conversations.
+ * Interactive chat interface for testing chatbot AI,
+ * with inline chatbot settings (collapsible panel).
  */
 import { playgroundService } from '~/services/PlaygroundService'
+import { chatbotSettingsService } from '~/services/ChatbotSettingsService'
 import type { PlaygroundHistoryItem } from '~~/shared/types/playground'
 import type { ChatSource } from '~~/shared/types/chat'
+import type { UpdateChatbotSettingsRequest } from '~~/shared/types/chatbot-settings'
 
 definePageMeta({ layout: 'dashboard' })
 useSeoMeta({ title: 'Playground — CRM Widget' })
 
 const toast = useToast()
+
+// ── Settings State ──────────────────────────────────────────
+const showSettings = ref(false)
+const settingsLoading = ref(false)
+const settingsSaving = ref(false)
+
+const settingsForm = reactive({
+  systemInstruction: '',
+  modelName: 'gemini-2.0-flash',
+  embeddingModel: 'text-embedding-004',
+  temperature: 0.7,
+  maxTokens: 4096,
+  topP: 0.95,
+  topK: 40,
+})
+
+async function loadSettings(): Promise<void> {
+  settingsLoading.value = true
+  try {
+    const response = await chatbotSettingsService.getSettings()
+    const data = response.data
+    settingsForm.systemInstruction = data.systemInstruction
+    settingsForm.modelName = data.modelName
+    settingsForm.embeddingModel = data.embeddingModel
+    settingsForm.temperature = data.temperature
+    settingsForm.maxTokens = data.maxTokens
+    settingsForm.topP = data.topP
+    settingsForm.topK = data.topK
+  }
+  catch {
+    toast.add({ title: 'Gagal memuat settings', color: 'error', icon: 'i-lucide-x' })
+  }
+  finally {
+    settingsLoading.value = false
+  }
+}
+
+async function saveSettings(): Promise<void> {
+  settingsSaving.value = true
+  try {
+    const payload: UpdateChatbotSettingsRequest = {
+      systemInstruction: settingsForm.systemInstruction,
+      modelName: settingsForm.modelName,
+      embeddingModel: settingsForm.embeddingModel,
+      temperature: settingsForm.temperature,
+      maxTokens: settingsForm.maxTokens,
+      topP: settingsForm.topP,
+      topK: settingsForm.topK,
+    }
+    await chatbotSettingsService.updateSettings(payload)
+    toast.add({ title: 'Settings berhasil disimpan', color: 'success', icon: 'i-lucide-check' })
+  }
+  catch {
+    toast.add({ title: 'Gagal menyimpan settings', color: 'error', icon: 'i-lucide-x' })
+  }
+  finally {
+    settingsSaving.value = false
+  }
+}
 
 // ── Chat State ───────────────────────────────────────────────
 interface ChatMessage {
@@ -172,7 +369,6 @@ const messageInput = ref('')
 const sending = ref(false)
 const messagesContainer = ref<HTMLElement | null>(null)
 
-// ── History for API calls ────────────────────────────────────
 const history = computed<PlaygroundHistoryItem[]>(() =>
   chatMessages.value.map(msg => ({
     role: msg.role,
@@ -180,16 +376,11 @@ const history = computed<PlaygroundHistoryItem[]>(() =>
   })),
 )
 
-// ── Send Message ─────────────────────────────────────────────
 async function sendMessage(): Promise<void> {
   const trimmed = messageInput.value.trim()
   if (!trimmed || sending.value) return
 
-  // Add user message
-  chatMessages.value.push({
-    role: 'user',
-    content: trimmed,
-  })
+  chatMessages.value.push({ role: 'user', content: trimmed })
   messageInput.value = ''
   sending.value = true
 
@@ -199,16 +390,14 @@ async function sendMessage(): Promise<void> {
   try {
     const response = await playgroundService.sendMessage({
       message: trimmed,
-      history: history.value.slice(0, -1), // exclude the just-added user msg
+      history: history.value.slice(0, -1),
     })
 
     chatMessages.value.push({
       role: 'assistant',
       content: response.data.reply,
       sources: response.data.sources,
-      stats: {
-        conversationId: response.data.conversationId,
-      },
+      stats: { conversationId: response.data.conversationId },
     })
   }
   catch {
@@ -218,7 +407,6 @@ async function sendMessage(): Promise<void> {
       icon: 'i-lucide-alert-circle',
       color: 'error',
     })
-    // Remove the user message on failure
     chatMessages.value.pop()
   }
   finally {
@@ -228,15 +416,20 @@ async function sendMessage(): Promise<void> {
   }
 }
 
-// ── Clear Chat ───────────────────────────────────────────────
 function clearChat(): void {
   chatMessages.value = []
 }
 
-// ── Helpers ──────────────────────────────────────────────────
 function scrollToBottom(): void {
   if (messagesContainer.value) {
     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
   }
 }
+
+// ── Lifecycle ────────────────────────────────────────────────
+watch(showSettings, (val) => {
+  if (val && settingsForm.systemInstruction === '') {
+    loadSettings()
+  }
+})
 </script>

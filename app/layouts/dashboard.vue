@@ -14,14 +14,20 @@
 
         <!-- Tenant Switcher -->
         <div class="px-3 py-3 border-b border-gray-200 dark:border-gray-800">
-          <USelect
-            v-if="tenantStore.hasTenants"
-            :model-value="tenantStore.currentTenantId"
-            :items="tenantOptions"
-            placeholder="Pilih Tenant"
-            size="sm"
-            @update:model-value="onTenantChange"
-          />
+          <UDropdownMenu :items="tenantMenuItems" :ui="{ content: 'w-56' }">
+            <UButton
+              variant="outline"
+              color="neutral"
+              class="w-full justify-between"
+              size="sm"
+            >
+              <div class="flex items-center gap-2 truncate">
+                <UIcon name="i-lucide-building" class="text-gray-400 shrink-0" />
+                <span class="truncate">{{ tenantStore.currentTenant?.name || 'Pilih Workspace' }}</span>
+              </div>
+              <UIcon name="i-lucide-chevrons-up-down" class="text-gray-400 shrink-0" />
+            </UButton>
+          </UDropdownMenu>
         </div>
 
         <!-- Navigation -->
@@ -110,13 +116,16 @@
  * Dashboard Layout
  *
  * Main layout for admin dashboard with sidebar navigation,
- * tenant switcher, and top bar with breadcrumbs.
+ * tenant switcher dropdown, and top bar with breadcrumbs.
  */
+import { tenantService } from '~/services/TenantService'
+import type { TenantResponse } from '~~/shared/types/tenant'
 
 const route = useRoute()
 const colorMode = useColorMode()
 const authStore = useAuthStore()
 const tenantStore = useTenantStore()
+const toast = useToast()
 
 const sidebarOpen = ref(false)
 
@@ -159,22 +168,61 @@ const navGroups = [
   },
 ]
 
-/** Tenant select options */
-const tenantOptions = computed(() =>
-  tenantStore.tenants.map(t => ({
-    label: t.name,
-    value: t.id,
-  })),
-)
+/** Tenant dropdown menu items */
+const tenantMenuItems = computed(() => {
+  const items: Array<Array<{ label: string; icon?: string; click?: () => void; disabled?: boolean }>> = []
 
-/** Handle tenant change */
-function onTenantChange(tenantId: string): void {
-  const tenant = tenantStore.tenants.find(t => t.id === tenantId)
-  if (tenant) {
-    tenantStore.setCurrentTenant(tenant)
-    // Reload current page to refetch data with new tenant context
-    window.location.reload()
+  // Current tenant header
+  if (tenantStore.currentTenant) {
+    items.push([{
+      label: tenantStore.currentTenant.name,
+      icon: 'i-lucide-check',
+      disabled: true,
+    }])
   }
+
+  // Other tenants to switch to
+  const otherTenants = tenantStore.tenants.filter(
+    t => t.id !== tenantStore.currentTenantId,
+  )
+  if (otherTenants.length > 0) {
+    items.push(
+      otherTenants.map(t => ({
+        label: t.name,
+        icon: 'i-lucide-building',
+        click: () => switchTenant(t),
+      })),
+    )
+  }
+
+  // Actions
+  items.push([
+    {
+      label: 'Kelola Workspace',
+      icon: 'i-lucide-settings',
+      click: () => navigateTo('/settings/tenant'),
+    },
+    {
+      label: 'Switch / Buat Baru',
+      icon: 'i-lucide-arrow-left-right',
+      click: () => navigateTo('/tenant/select'),
+    },
+  ])
+
+  return items
+})
+
+/** Switch to another tenant */
+function switchTenant(tenant: TenantResponse): void {
+  tenantStore.setCurrentTenant(tenant)
+  toast.add({
+    title: 'Workspace diganti',
+    description: tenant.name,
+    icon: 'i-lucide-check-circle',
+    color: 'success',
+  })
+  // Reload to refetch all data with new tenant context
+  window.location.reload()
 }
 
 /** Check if route matches nav item */
@@ -208,13 +256,32 @@ const breadcrumbItems = computed(() => {
 const userMenuItems = computed(() => [
   [{
     label: authStore.fullName,
-    slot: 'header' as const,
+    icon: 'i-lucide-user',
     disabled: true,
   }],
-  [{
-    label: 'Logout',
-    icon: 'i-lucide-log-out',
-    click: () => authStore.logout(),
-  }],
+  [
+    {
+      label: 'Switch Workspace',
+      icon: 'i-lucide-arrow-left-right',
+      click: () => navigateTo('/tenant/select'),
+    },
+    {
+      label: 'Logout',
+      icon: 'i-lucide-log-out',
+      click: () => authStore.logout(),
+    },
+  ],
 ])
+
+/** Fetch tenant list on mount */
+onMounted(async () => {
+  try {
+    const response = await tenantService.listTenants()
+    const tenantList = response.data as TenantResponse[]
+    tenantStore.setTenants(tenantList)
+  }
+  catch {
+    // Ignore — tenants already in store from login
+  }
+})
 </script>

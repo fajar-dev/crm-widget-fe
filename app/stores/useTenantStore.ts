@@ -65,6 +65,11 @@ export const useTenantStore = defineStore('tenant', () => {
     }
   }
 
+  /** Set tenants list */
+  function setTenants(list: TenantResponse[]): void {
+    tenants.value = list
+  }
+
   /** Clear tenant state on logout */
   function clearTenant(): void {
     tenants.value = []
@@ -75,7 +80,7 @@ export const useTenantStore = defineStore('tenant', () => {
   }
 
   return {
-    tenants: readonly(tenants),
+    tenants,
     currentTenant: readonly(currentTenant),
     isLoading: readonly(isLoading),
     currentTenantId,
@@ -83,6 +88,7 @@ export const useTenantStore = defineStore('tenant', () => {
     hasTenants,
     restoreCurrentTenant,
     setCurrentTenant,
+    setTenants,
     fetchTenants,
     clearTenant,
   }

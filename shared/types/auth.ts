@@ -15,8 +15,11 @@ export interface UserResponse {
   id: string
   firstName: string
   lastName: string
+  fullName?: string
   email: string
-  role: UserRole
+  phone?: string | null
+  avatarUrl?: string | null
+  role?: UserRole
   isActive: boolean
   lastLoginAt: string | null
   createdAt: string
@@ -48,6 +51,14 @@ export interface RegisterRequest {
 /** Refresh token request payload */
 export interface RefreshTokenRequest {
   refreshToken: string
+}
+
+/** Login response — actual structure from backend */
+export interface LoginResponseData {
+  user: UserResponse
+  tenants: Array<{ id: string; name: string; slug: string }>
+  activeTenant: { id: string; name: string; slug: string } | null
+  tokens: AuthTokens
 }
 
 // ── Zod Schemas ──────────────────────────────────────────────

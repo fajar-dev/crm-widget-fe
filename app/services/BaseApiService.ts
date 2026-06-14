@@ -45,7 +45,7 @@ export abstract class BaseApiService {
       return config.public.apiBaseUrl as string
     }
     catch {
-      return 'http://localhost:3000/api'
+      return 'http://localhost:4000/api'
     }
   }
 

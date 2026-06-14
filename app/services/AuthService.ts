@@ -10,19 +10,21 @@
 import { DashboardApiService } from './DashboardApiService'
 import type { ApiResponse } from '~~/shared/types/api'
 import type {
-  AuthTokens,
+  LoginResponseData,
   LoginRequest,
   RegisterRequest,
   RefreshTokenRequest,
   UserResponse,
+  AuthTokens,
 } from '~~/shared/types/auth'
 
 export class AuthService extends DashboardApiService {
   /**
-   * Authenticate user with email and password
+   * Authenticate user with email and password.
+   * Returns user, tenants, activeTenant, and tokens.
    */
-  async login(payload: LoginRequest): Promise<ApiResponse<AuthTokens>> {
-    return this.post<AuthTokens>('/auth/login', payload)
+  async login(payload: LoginRequest): Promise<ApiResponse<LoginResponseData>> {
+    return this.post<LoginResponseData>('/auth/login', payload)
   }
 
   /**

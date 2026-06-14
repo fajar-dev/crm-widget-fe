@@ -84,10 +84,20 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const { authService } = await import('~/services/AuthService')
       const response = await authService.login(payload)
-      setTokens(response.data)
+      const { tokens, user: userData, tenants: tenantList, activeTenant } = response.data
 
-      const meResponse = await authService.getMe()
-      setUser(meResponse.data)
+      // Set tokens first so subsequent API calls have auth
+      setTokens(tokens)
+      setUser(userData)
+
+      // Set tenants in tenant store
+      const tenantStore = useTenantStore()
+      if (tenantList && tenantList.length > 0) {
+        // If backend provides activeTenant, use it
+        if (activeTenant) {
+          tenantStore.setCurrentTenant(activeTenant as never)
+        }
+      }
 
       return true
     }

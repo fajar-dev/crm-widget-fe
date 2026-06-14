@@ -28,12 +28,13 @@ export default defineNuxtConfig({
 
   /**
    * Nitro devProxy — proxy /api requests to backend
-   * Avoids CORS issues during development
+   * Avoids CORS issues during development.
+   * Request: /api/tenants → http://localhost:4000/api/tenants
    */
   nitro: {
     devProxy: {
       '/api': {
-        target: process.env.NUXT_PUBLIC_BACKEND_URL || 'http://localhost:4000/api',
+        target: process.env.NUXT_BACKEND_URL || 'http://localhost:4000',
         changeOrigin: true,
       },
     },
@@ -44,7 +45,7 @@ export default defineNuxtConfig({
    */
   routeRules: {
     '/api/**': {
-      proxy: (process.env.NUXT_PUBLIC_BACKEND_URL || 'http://localhost:4000') + '/api/**',
+      proxy: (process.env.NUXT_BACKEND_URL || 'http://localhost:4000') + '/api/**',
     },
   },
 

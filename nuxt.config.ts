@@ -17,11 +17,34 @@ export default defineNuxtConfig({
   /**
    * Runtime config — accessible via useRuntimeConfig()
    * Override via environment variables:
-   *   NUXT_PUBLIC_API_BASE_URL=http://localhost:4000/api
+   *   NUXT_PUBLIC_API_BASE_URL=/api (proxied via Nitro)
+   *   NUXT_PUBLIC_BACKEND_URL=http://localhost:4000 (actual backend)
    */
   runtimeConfig: {
     public: {
-      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api',
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || '/api',
+    },
+  },
+
+  /**
+   * Nitro devProxy — proxy /api requests to backend
+   * Avoids CORS issues during development
+   */
+  nitro: {
+    devProxy: {
+      '/api': {
+        target: process.env.NUXT_PUBLIC_BACKEND_URL || 'http://localhost:4000/api',
+        changeOrigin: true,
+      },
+    },
+  },
+
+  /**
+   * Route rules — proxy /api in production
+   */
+  routeRules: {
+    '/api/**': {
+      proxy: (process.env.NUXT_PUBLIC_BACKEND_URL || 'http://localhost:4000') + '/api/**',
     },
   },
 

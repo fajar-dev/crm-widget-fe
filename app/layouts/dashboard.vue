@@ -153,12 +153,6 @@ const navGroups = [
     ],
   },
   {
-    label: 'CRM',
-    items: [
-      { label: 'Contacts', to: '/contacts', icon: 'i-lucide-contact' },
-    ],
-  },
-  {
     label: 'Settings',
     items: [
       { label: 'Tenant', to: '/settings/tenant', icon: 'i-lucide-building' },
